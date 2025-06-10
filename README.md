@@ -59,7 +59,7 @@ uv venv --python=3.10 # The version can change to accommodate your simulator's n
 ```
 2. Activate the inference virtual environment. This is important because we don't want to install the policy dependencies in the training environment.
 ```
-source venv/bin/activate
+source .venv/bin/activate
 ```
 3. Install the policy dependencies using `pyproject.toml`
 ```
