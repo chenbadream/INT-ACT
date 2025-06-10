@@ -7,7 +7,7 @@ This is the official implementation of [From Intention to Execution: Probing the
 ## Installation
 Install this codebase by first cloning it.
 ```
-git clone --recurse-submodules https://github.com/ai4ce/OpenPi.git
+git clone --recurse-submodules https://github.com/ai4ce/INT-ACT.git
 cd INT-ACT
 ```
 > [!IMPORTANT]
