@@ -22,9 +22,9 @@ uv sync
 ```
 
 > [!IMPORTANT]
-> This alone does not allow inference. It only installed the inference server.
+> This only installed the dependency for training and inference server. Full-scale inference requires installing the inference client (simulator) dependencies.
 
-Inference under different environments, such as Simpler, Simpler-ManiSkill3, Libero, or real world requires installing their own dependency in a separate environment. 
+Inference under different environments, such as `Simpler`, `Simpler-ManiSkill3`, `Libero`, or real world requires installing their own dependency in a separate environment. 
 
 We do this to allow a server-client architecture that can separate the very different compute demands of doing training vs. running experiments on a robot
 
