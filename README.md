@@ -1,7 +1,7 @@
 :new: [2025-6-9] *Made Public*
 
 # INT-ACT
-### [[Page](https://ai4ce.github.io/INT-ACT/)] | [[Paper](https://arxiv.org/abs/2410.08282)]
+### [[Page](https://ai4ce.github.io/INT-ACT/)] | [[Paper](http://arxiv.org/abs/2506.09930)]
 This is the official implementation of [From Intention to Execution: Probing the Generalization Boundaries of Vision-Language-Action Models](https://ai4ce.github.io/INT-ACT/)
 
 ## Installation
