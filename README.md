@@ -45,7 +45,11 @@ uv sync
 
 Inference under different environments, such as `Simpler`, `Simpler-ManiSkill3`, `Libero`, or real world requires installing their own dependency in a separate environment. 
 
+> [!NOTE]
+> Server refers to the policy ($\pi_0$, Octo, etc). Client refers to simulator (`Maniskill`) and real-world robots. Simulator/Client will feed its observations to the server to retrieve the action to execute.
+
 We do this to allow a server-client architecture that can separate the very different compute demands of doing training vs. running experiments on a robot
+
 
 ### Install Inference Environment 
 #### Install Inference Client (Simulator) Environment
