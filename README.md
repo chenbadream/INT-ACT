@@ -1,8 +1,27 @@
-:new: [2025-6-9] *Made Public*
+ <b>This README is still being actively worked on. So if you find something missing, please open an issue and we will take care of it as soon as possible.</b>
+
+:new: [2025-6-12] *Made Public*.
 
 # INT-ACT
 ### [[Page](https://ai4ce.github.io/INT-ACT/)] | [[Paper](http://arxiv.org/abs/2506.09930)]
 This is the official implementation of [From Intention to Execution: Probing the Generalization Boundaries of Vision-Language-Action Models](https://ai4ce.github.io/INT-ACT/)
+
+## Table of Contents
+- [Table of Contents](#table-of-contents)
+- [TODO](#todo)
+- [Installation](#installation)
+    - [Install Inference Environment](#install-inference-environment)
+        - [Install Inference Client (Simulator) Environment](#install-inference-client-simulator-environment)
+        - [(Octo and Magma) Install Inference Server (Policy) Environment](#octo-and-magma-install-inference-server-policy-environment)
+- [Acquire Data for Training/Fine-tuning](#acquire-data-for-trainingfine-tuning)
+- [Train and Fine-tune](#train-and-fine-tune)
+- [Evaluate/Benchmark](#evaluatebenchmark)
+- [How to Set ENV Variables](#how-to-set-env-variables)
+
+## TODO
+- [ ] Add more complete documentation for training and evaluation. Currently the code is all there but documentation is sparse.
+
+- [ ] Release all relevant model checkpoints on HF
 
 ## Installation
 Install this codebase by first cloning it.
