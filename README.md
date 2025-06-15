@@ -7,21 +7,24 @@
 This is the official implementation of [From Intention to Execution: Probing the Generalization Boundaries of Vision-Language-Action Models](https://ai4ce.github.io/INT-ACT/)
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [TODO](#todo)
-- [Installation](#installation)
+- [INT-ACT](#int-act)
+    - [\[Page\] | \[Paper\]](#page--paper)
+  - [Table of Contents](#table-of-contents)
+  - [TODO](#todo)
+  - [Installation](#installation)
     - [Install Inference Environment](#install-inference-environment)
-        - [Install Inference Client (Simulator) Environment](#install-inference-client-simulator-environment)
-        - [(Octo and Magma) Install Inference Server (Policy) Environment](#octo-and-magma-install-inference-server-policy-environment)
-- [Acquire Data for Training/Fine-tuning](#acquire-data-for-trainingfine-tuning)
-- [Train and Fine-tune](#train-and-fine-tune)
-- [Evaluate/Benchmark](#evaluatebenchmark)
-- [How to Set ENV Variables](#how-to-set-env-variables)
+      - [Install Inference Client (Simulator) Environment](#install-inference-client-simulator-environment)
+      - [(Octo and Magma) Install Inference Server (Policy) Environment](#octo-and-magma-install-inference-server-policy-environment)
+  - [Acquire Data for Training/Fine-tuning](#acquire-data-for-trainingfine-tuning)
+  - [Acquire Checkpoints for Evaluation](#acquire-checkpoints-for-evaluation)
+  - [Train and Fine-tune](#train-and-fine-tune)
+  - [Evaluate/Benchmark](#evaluatebenchmark)
+  - [How to Set ENV Variables](#how-to-set-env-variables)
 
 ## TODO
 - [ ] Add more complete documentation for training and evaluation. Currently the code is all there but documentation is sparse.
 
-- [ ] Release all relevant model checkpoints on HF
+- [x] Release all relevant model checkpoints on HF
 
 ## Installation
 Install this codebase by first cloning it.
@@ -91,6 +94,26 @@ uv pip install -r pyproject.toml
 
 ## Acquire Data for Training/Fine-tuning
 For now, we refer you to Allen Ren's [README](https://github.com/allenzren/open-pi-zero)
+
+## Acquire Checkpoints for Evaluation
+We released our trained Pi0 variants on Huggingface. You can find them under the [INTACT collection](https://huggingface.co/collections/ai4ce/intact-probing-suite-684e5601e9ed640fdd9b994b). Specifically, they are:
+
+| Model | Notes | Download Link |
+| ------ | ------ | ------ |
+| Pi0 finetune | Pi0 finetuned on BridgeV2 | [HF hub](https://huggingface.co/juexzz/INTACT-pi0-finetune-bridge)|
+| Pi0 finetune rephrase | Pi0 finetuned on BridgeV2 with task paraphrase | [HF hub](https://huggingface.co/juexzz/INTACT-pi0-finetune-rephrase-bridge)|
+| Pi0 scratch | Pi0 trained from scratch on BridgeV2 | [HF hub](https://huggingface.co/juexzz/INTACT-pi0-scratch-bridge)|
+
+You can find the details in each checkpoint's model card.
+
+For convenience, we also include links to the baselines which have been generously provided by their original authors:
+
+| Model | Reference | Download Link |
+| ------ | ------ | ------ |
+| Magma | Magma: A Foundation Model for Multimodal AI Agents [*CVPR 2025*](https://microsoft.github.io/Magma/) | [HF hub](https://huggingface.co/microsoft/Magma-8B) |
+| SpatialVLA | SpatialVLA: Exploring Spatial Representations for Visual-Language-Action Model [*RSS 2025*](https://spatialvla.github.io) | [HF hub](https://huggingface.co/IPEC-COMMUNITY/spatialvla-4b-224-sft-bridge)
+| Octo models | Octo: An Open-Source Generalist Robot Policy [*RSS 2024*](https://octo-models.github.io) | [Small (HF)](https://huggingface.co/rail-berkeley/octo-small) / [Base (HF)](https://huggingface.co/rail-berkeley/octo-base)
+
 
 ## Train and Fine-tune
 1. See `slurms/train_scripts/pi0_finetune_bridge.sh` for how to train
