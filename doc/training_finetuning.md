@@ -2,8 +2,10 @@ To see how we fine-tune the $\pi_0$ model, please refer to [pi_finetune_bridge.s
 
 Our scripts are all designed to be run on a SLURM cluster, so here we will break down the scripts so you can reuse them on your cluster or local machine without SLURM.
 
+While not thoroughly tested, we believe that by getting rid of Singularity-related commands as we recommend in the following section, you can directly run the script to perform training and fine-tuning. We use almost identical scripts for training from scratch and fine-tuning, with only differences in respective configuration files.
+
 ## SLURM Script Breakdown
-We will use the aforementioned script as an example to explain the components of a SLURM script.
+We will use the aforementioned script as an example to explain the components of an SLURM script.
 ### Directives
 ```bash
 #!/bin/bash
@@ -51,7 +53,7 @@ OMP_THREADS=$((TOTAL_CORES / NUM_GPU))
 OMP_THREADS=$((OMP_THREADS > 0 ? OMP_THREADS : 1))
 echo "OMP_NUM_THREADS=$OMP_THREADS"
 ```
-This section computes the number of OpenMP threads to use in multi-GPU training. Technically it should help with performance, but empirically we found no detectable improvement. You can remove this section if you want.
+This section computes the number of OpenMP threads to use in multi-GPU training. Technically, it should help with performance, but empirically, we found no detectable improvement. You can remove this section if you want.
 
 ### Multi-GPU Setup
 ```bash
@@ -89,17 +91,17 @@ singularity exec --nv \
 ```
 This is the main command that runs the training with singularity.
 
-**If you are not using singularity** (e.g. running locally), you can remove the `singularity exec` line and just run the command inside the quotes directly in your terminal. That is, remove everything before `"source ...`. If you do use singularity, please refer to your cluster documentation to understand singularity commands.
+**If you are not using singularity** (e.g., running locally), you can remove the `singularity exec` line and just run the command inside the quotes directly in your terminal. That is, remove everything before `"source ...`. If you do use Singularity, please refer to your cluster documentation to understand Singularity commands.
 
 Everything after `torchrun` is standard distributed training arguments. You can use ChatGPT to help you understand them.
 
 `--config_path config/train/pi0_finetune_bridge.yaml` specifies the configuration file for the training. We will explain the configuration file in the next section.
 
 You may notice the `|| scontrol requeue $SLURM_JOB_ID` at the end of the command. Together with the `#SBATCH --requeue` directive and `echo "Job restart count: $SLURM_RESTART_COUNT"`,
-this allows the job to be automatically resubmitted if it fails. This is to handle an unresolved bug that happens almost whimiscally on our cluster. You can remove this part if you don't need it.
+this allows the job to be automatically resubmitted if it fails. This is to handle an unresolved bug that happens almost whimsically on our cluster. You can remove this part if you don't need it.
 
 ## Configuration Files Breakdown
-We use `draccus` to manage configurations. A
+We use `draccus` to manage configurations. 
 
 ### Training Configuration
 [pi0_finetune_bridge.yaml](../config/train/pi0_finetune_bridge.yaml) is the configuration file for fine-tuning the $\pi_0$ model. 
@@ -111,7 +113,7 @@ Things like local batch size, global batch size, gradient accumulation steps, wa
 ### Model Configuration
 We use a `json` file in [config/model](../config/train) to define the model configuration. This is to follow the LeRobot/HuggingFace convention. The dataclass that defines the model configuration can be found in their corresponding [LeRobot Repo](https://huggingface.co/lerobot/pi0/blob/main/config.json). 
 
-The model configuration is loaded by the training configuration and can be changed there as well. Interestingly, the LeRobot convention is that the model configuration defines learning rate, weight decay and some other related hyperparameters.
+The model configuration is loaded by the training configuration and can be changed there as well. Interestingly, the LeRobot convention is that the model configuration defines learning rate, weight decay, and some other related hyperparameters.
 
 #### Placeholder Configuration for Non-LeRobot Models
-As you may have noticed, we have some placeholders for models that do not follow the LeRobot convention, such as Magma, SpatialVLA, Octo and such. More details about them will be provided in the evaluation documentation.
+As you may have noticed, we have some placeholders for models that do not follow the LeRobot convention, such as Magma, SpatialVLA, Octo, and such. More details about them will be provided in the evaluation documentation.
