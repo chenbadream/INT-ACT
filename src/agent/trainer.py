@@ -16,7 +16,6 @@ from torch.utils.data import DataLoader
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 import einops
-import evaluate
 import torch.distributed as dist
 from lerobot.common.policies.pretrained import PreTrainedPolicy
 from torch.distributed.fsdp import (
@@ -34,7 +33,7 @@ from src.agent.dataset import TorchRLDSInterleavedDataset
 from src.utils.metric import get_action_accuracy
 from src.utils.monitor import Timer, blockprint, log_allocated_gpu_memory, log_execution_time, setup_logger
 from src.utils.optim import CosineAnnealingWarmupRestarts, get_num_params_in_billions
-from src.utils.pipeline import process_images, revert_processed_images, set_seed_everywhere
+from src.utils.pipeline import process_images, set_seed_everywhere
 
 full_state_save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
 
@@ -93,7 +92,8 @@ class BaseTrainer:
         self.save_model_freq = int(train_cfg.save_model_freq)
         self.log_freq = train_cfg.log_freq
 
-        self._dir_setup()
+        if self.main_rank:
+            self._dir_setup()
 
         # Training parameters
         self.n_updates = int(train_cfg.n_updates) # number of gradient updates. != gradient steps due to gradient accumulation

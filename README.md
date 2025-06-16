@@ -116,8 +116,8 @@ For convenience, we also include links to the baselines which have been generous
 
 
 ## Train and Fine-tune
-1. See `slurms/train_scripts/pi0_finetune_bridge.sh` for how to train
-2. See `slurms/train_scripts/pi0_finetune_bridge.sh` for how to finetune
+The documentation can be found in [doc/training_finetuning.md](doc/training_finetuning.md).
+
 
 ## Evaluate/Benchmark
 3. See `slurms/eval_scripts/ev_pi0_bridge_simpler.sh` for how to eval

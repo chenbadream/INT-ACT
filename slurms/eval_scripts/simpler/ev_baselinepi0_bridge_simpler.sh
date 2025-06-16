@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=ev_pi0baseline_orig+distract_bridge_simpler
+#SBATCH --job-name=ev_pi0baseline_bridge_simpler
 #SBATCH --output=log/slurm/eval/simpler/%x_%j.out
 #SBATCH --error=log/slurm/eval/simpler/%x_%j.err
 #SBATCH --time=48:00:00
