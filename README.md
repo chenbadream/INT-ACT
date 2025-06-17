@@ -122,16 +122,7 @@ The documentation can be found in [doc/training_finetuning.md](doc/training_fine
 
 
 ## Evaluate/Benchmark
-3. See `slurms/eval_scripts/ev_pi0_bridge_simpler.sh` for how to eval
-
-4. `config` is for all kinds of configuration
-    - `config/models` contains model configuration
-    - `config/train` contains training pipeline configuration
-    - `config/experiment` contains eval pipeline configuration
-
-5. `src` contains important source code
-    - `src/experiments` contains simulator adapters and `evaluator.py`
-    - `src/agent` contains `trainer.py`. Also contains `run.py`, which serves as the entry point to both `trainer.py` and `evaluator.py`
+The documentation can be found in [doc/evaluation.md](doc/evaluation.md). (Still a work in progress)
 
 ## How to Set ENV Variables
 1. create a `set_path.sh` file in the project's root directory
