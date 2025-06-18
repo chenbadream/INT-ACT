@@ -4,7 +4,7 @@ Similar to training scripts, eval scripts are all designed to be run on a SLURM 
 
 
 ## SLURM Script Breakdown
-Eval scripts are in general much more complicated. Maniskill2, which SimplerEnv is based on, does not natively support GPU parallelism for simulation, so you can only evaluate one scene at a time, resulting in a slow evaluation. So we had to implement these gimicks to parallelize the evaluation process. 
+Eval scripts are, in general, much more complicated. Maniskill2, which SimplerEnv is based on, does not natively support GPU parallelism for simulation, so you can only evaluate one scene at a time, resulting in a slow evaluation. So we had to implement these gimmicks to parallelize the evaluation process. 
 
 We have tried Maniskill3-based SimplerEnv, which natively supports GPU parallelism, but we found two issues: 
 1. Discrepancy in metrics (task success rate, etc) between Maniskill2 and Maniskill3 is pretty significant. 
@@ -29,22 +29,22 @@ So, for now, we will stick with Maniskill2.
 
 trap "echo 'Ctrl+C received, killing server...'; kill $SERVER_PID; exit 1" SIGINT
 ```
-The shebang and directives are similar to the training scripts. Note that we use significantly less compute resources. 
+The shebang and directives are similar to the training scripts. Note that we use significantly fewer compute resources. 
 
 The `trap` command is a relic for debugging. Feel free to completely remove it if you don't intend to run the script interactively.
 
-Similarly, **when doing local training**, you can remove all of these except the shebang.
+Similar to training, **when doing local training**, you can remove all of these except the shebang.
 
 ### Config Files and Random Seed
 ```bash
 CONFIG_NAMES=("pi0_finetune_bridge_ev.yaml")
 SEEDS=(42 7 314)
 ```
-This section defines which config files and random seeds to use. As you might have noticed, in theory you can put multiple config files and the script will run them sequentially (e.g., `CONFIG_NAMES=("config1.yaml" "config2.yaml")`). However, we only use one config file in this example.
+This section defines which config files and random seeds to use. As you might have noticed, in theory, you can put multiple config files and the script will run them sequentially (e.g., `CONFIG_NAMES=("config1.yaml" "config2.yaml")`). However, we only use one config file in this example.
 
-Random seeds here will affect the random seed used in all RNG-based operations in `torch`, `numpy` etc that we can think of. This is for reproducibility.
+Random seeds here will affect the random seed used in all RNG-based operations in `torch`, `numpy`, etc that we can think of. This is for reproducibility.
 
-### Idel Port Finding
+### Idle Port Finding
 ```bash
 # Function to check if a port is available
 is_port_in_use() {
@@ -65,9 +65,9 @@ find_available_port() {
     return 1
 }
 ```
-Our server-client architecture for inference uses `websocket` under the hood. To avoid race conditions between parallel evaluations, we need to find available ports for each client-server pair. The `is_port_in_use` function is a relic and can be removed.
+Our server-client architecture for inference uses `websocket` under the hood. To avoid race conditions between parallel evaluations, we need to find available ports for each client-server pair. The `is_port_in_use` function is a relic and can be removed. `find_available_port` is the function that's actually being used.
 
-**Even when running locally**, it's recommended to keep this section as it is.
+**Even when running locally**, it's recommended to keep this section.
 
 ### Environment Variables
 ```bash
