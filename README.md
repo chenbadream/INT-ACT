@@ -24,7 +24,7 @@ This is the official implementation of [From Intention to Execution: Probing the
   - [How to Set ENV Variables](#how-to-set-env-variables)
 
 ## TODO
-- [ ] Add more complete documentation for training and evaluation. Currently the code is all there but documentation is sparse.
+- [x] Add more complete documentation for training and evaluation. Currently, the code is all there, but the documentation is sparse.
 
 - [x] Release all relevant model checkpoints on HF
 
@@ -125,11 +125,11 @@ The documentation can be found in [doc/training_finetuning.md](doc/training_fine
 The documentation can be found in [doc/evaluation.md](doc/evaluation.md).
 
 ## How to Set ENV Variables
-1. create a `set_path.sh` file in the project's root directory
+1. Create a `set_path.sh` file in the project's root directory
 2. Fill out the following variables
 ```
 #!/bin/bash
-# used to sync the path on HPC with data from collaborators and model from baseline directory
+# used to sync the path on HPC with data from collaborators and the model from the baseline directory
 # to avoid redundant data download
 # training dataset
 export VLA_DATA_DIR=
@@ -153,6 +153,6 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 export UV_CACHE_DIR=
 export UV_PYTHON_INSTALL_DIR=
 
-# Singularity (This is obviously optional if you don't use singularity)
+# Singularity (This is obviously optional if you don't use Singularity)
 export OVERLAY_EXT3=
 ```
