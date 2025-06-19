@@ -110,3 +110,98 @@ for s in cfg["eval_cfg"]["pretrained_model_gradient_step_cnt"]:
 EOF
 ) )
 ```
+Here we are doing something very gimmicky. The `pretrained_model_gradient_step_cnt` is a list of steps to evaluate the model at, defined in `config/experiment/simpler/${CONFIG_NAME}`. We use Python to read the config file and extract the steps, which are then stored in `STEP_COUNTS`, so that we can iterate over them later.
+
+### Eval Loop
+```bash
+BATCH_SIZE=4
+TOTAL=${#STEP_COUNTS[@]}
+for (( i=0; i<TOTAL; i+=BATCH_SIZE )); do
+    CHUNK=( "${STEP_COUNTS[@]:i:BATCH_SIZE}" )
+    # spawn one server+client pair per step count, each on its own port
+    SERVER_PIDS=()
+    CLIENT_PIDS=()
+    for STEP in "${CHUNK[@]}"; do
+        # Find a random available port instead of incrementing
+        PORT=$(find_available_port)
+        echo "Selected random port $PORT for step $STEP"
+
+        echo "Launching server on port $PORT for step $STEP"
+```
+In our experience, on one 80GB A100/H100, we can evaluate 4 pairs of server+client in parallel, so we set `BATCH_SIZE=4`. You can change this number to fit your GPU memory.
+
+Then, we iterate over config and random seed combinations, launching 4 pairs of server+client simultaneously, each pair using a checkpoint at a specific gradient step.
+
+### Launch Server and Client
+```bash
+                singularity exec --nv \
+                    --bind /usr/share/nvidia \
+                    --bind /usr/share/glvnd/egl_vendor.d/10_nvidia.json \
+                    --bind /usr/share/vulkan/icd.d/nvidia_icd.x86_64.json \
+                    --overlay ${OVERLAY_EXT3}:ro \
+                    --overlay /scratch/work/public/singularity/vulkan-1.4.309-cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sqf:ro \
+                    /scratch/work/public/singularity/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif \
+                    /bin/bash -c "source ./set_path.sh; \
+                        export PATH='/ext3/uv:$PATH'; \
+                        source ./.venv/bin/activate; \
+                        python src/agent/run.py \
+                        --config_path config/experiment/simpler/${CONFIG_NAME} \
+                        --seed ${SEED} \
+                        --use_bf16 False \
+                        --eval_cfg.port ${PORT} \
+                        --eval_cfg.pretrained_model_gradient_step_cnt=\"[${STEP}]\" \
+                        --use_wandb False \
+                        --eval_cfg.role server" &
+                SERVER_PIDS+=($!)
+
+                echo "Launching client on port $PORT for step $STEP"
+                # give server a moment to bind
+                sleep 2
+
+                # start client for this STEP
+                singularity exec --nv \
+                    --bind /usr/share/nvidia \
+                    --bind /usr/share/glvnd/egl_vendor.d/10_nvidia.json \
+                    --bind /usr/share/vulkan/icd.d/nvidia_icd.x86_64.json \
+                    --overlay ${OVERLAY_EXT3}:ro \
+                    --overlay /scratch/work/public/singularity/vulkan-1.4.309-cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sqf:ro \
+                    /scratch/work/public/singularity/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif \
+                    /bin/bash -c "source ./set_path.sh; \
+                        export PATH='/ext3/uv:$PATH'; \
+                        source ./src/experiments/envs/simpler/.venv/bin/activate; \
+                        python src/agent/run.py \
+                        --config_path config/experiment/simpler/${CONFIG_NAME} \
+                        --seed ${SEED} \
+                        --use_bf16 False \
+                        --eval_cfg.port ${PORT} \
+                        --eval_cfg.pretrained_model_gradient_step_cnt=\"[${STEP}]\" \
+                        --use_wandb False \
+                        --eval_cfg.role client" &
+                CLIENT_PIDS+=($!)
+
+            done
+
+            # wait for this batch of clients
+            wait "${CLIENT_PIDS[@]}"
+            # then kill this batch of servers
+            for pid in "${SERVER_PIDS[@]}"; do kill $pid; done
+        done
+    done
+done
+```
+Here we launch the server and client pair. We use `SERVER_PIDS+=($!)` and `CLIENT_PIDS+=($!)` to store the PIDs of the launched processes.
+
+Later on, we wait for all clients to finish with `wait "${CLIENT_PIDS[@]}"`, and then kill the servers with `kill $pid`. This is because the server is designed to run indefinitely, so we need to kill it after the client finishes.
+
+There is another gimmick here. We use `--eval_cfg.pretrained_model_gradient_step_cnt=\"[${STEP}]\"` to pass the specific gradient step to the server and client. You may have recalled that we extracted a list of steps from the config file earlier. This is actually overwriting that list with a single step, so that the server and client only evaluate the model at that specific step. That list is already extracted, so we can safely overwrite it.
+
+## Evaluate Trained and Third-Party/Non-LeRobot Models
+### Trained Models
+$\pi_0$ are fine-tuned and trained by us using LeRobot. You can evaluate them using the provided evaluation script. 
+
+
+You can change `eval_cfg.pretrained_model_gradient_step_cnt`, which is a list of steps to evaluate the model at.
+
+
+### Third-Party/Non-LeRobot Models
+To evaluate third-party models, such as Magma, Octo, SpatialVLA, etc., or any models you develop without LeRobot, there are some works to do. (TBA)

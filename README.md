@@ -122,7 +122,7 @@ The documentation can be found in [doc/training_finetuning.md](doc/training_fine
 
 
 ## Evaluate/Benchmark
-The documentation can be found in [doc/evaluation.md](doc/evaluation.md). (Still a work in progress)
+The documentation can be found in [doc/evaluation.md](doc/evaluation.md).
 
 ## How to Set ENV Variables
 1. create a `set_path.sh` file in the project's root directory
