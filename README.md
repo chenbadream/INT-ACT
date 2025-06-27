@@ -1,4 +1,6 @@
- <b>This README is still being actively worked on. So if you find something missing, please open an issue and we will take care of it as soon as possible.</b>
+ <b>This README is functionally complete as of 06/26/2025. So if you find something missing, please open an issue and we will take care of it as soon as possible.</b>
+
+:new: [2025-6-26] *Tutorial for Evaluation Updated*
 
 :new: [2025-6-15] *Model Checkpoints Uploaded. Tutorial for Training/Fine-tuning Updated*
 

@@ -1,5 +1,7 @@
 To see how we evaluate a model, please refer to [ev_pi0_bridge_simpler.sh](../slurms/eval_scripts/simpler/ev_pi0_bridge_simpler.sh).
 
+INT-ACT essentially is an extension of SimplerEnv, so theoretically, you can just clone our forked [SimplerEnv](https://github.com/juexZZ/SimplerEnv/tree/fea52fbb9e0da8a2e4e7e5a155b8e5b7f9dd5b87) and [Maniskill2](https://github.com/juexZZ/ManiSkill2_real2sim/tree/eeb04c788feafdf08f4565bcda34370e5a555325) and run the evaluation like you would with SimplerEnv. This README is to provide a more detailed explanation of how we evaluate the models in our paper.
+
 Similar to training scripts, eval scripts are all designed to be run on a SLURM cluster, so here we will break down the scripts so you can reuse them on your cluster or local machine without SLURM.
 
 
@@ -197,11 +199,19 @@ There is another gimmick here. We use `--eval_cfg.pretrained_model_gradient_step
 
 ## Evaluate Trained and Third-Party/Non-LeRobot Models
 ### Trained Models
-$\pi_0$ are fine-tuned and trained by us using LeRobot. You can evaluate them using the provided evaluation script. 
+$\pi_0$ are fine-tuned and trained by us using LeRobot. You can evaluate them using the provided evaluation script. You can also refer to the [config file](../config/experiment/simpler/pi0_finetune_bridge_ev.yaml) for the evaluation settings.
 
 
 You can change `eval_cfg.pretrained_model_gradient_step_cnt`, which is a list of steps to evaluate the model at.
 
 
 ### Third-Party/Non-LeRobot Models
-To evaluate third-party models, such as Magma, Octo, SpatialVLA, etc., or any models you develop without LeRobot, there are some works to do. (TBA)
+To evaluate third-party models, such as Magma, Octo, SpatialVLA, etc., or any models you develop without LeRobot, there are some works to do. 
+
+1. **Create LeRobot Compatible Placeholder**: See [Magma Folder](../src/model/magma) to see how we create a placeholder for Magma. You will need to create a `configuration_{your_model}.py` which defines the model's configuration, and a `modeling_{your_model}.py` which defines the model's architecture. Of course, these files don't need to hold anything substantial, because the actualy modeling/configuration is done in a third-party package (potentially of your own), like Magma, Octo, etc.
+
+2. **Install the Third-Party Model**: You will need to install the third-party model. Please follow [inference server installment section of the main README](README.md#octo-and-magma-install-inference-server-policy-environment)
+
+3. **Modify the entry point**: Please modify the  [entry point script](../src/agent/run.py) accordingly so you can launch your own model's evaluation.
+
+4. **Create a experiment config file**: You will need to create a config file under `config/experiment/simpler/` that defines the evaluation settings for your model. You can use the existing [config files](../config/experiment/simpler/magma_bridge_ev_lang1.yaml) as a reference. For `eval_cfg.pretrained_model_gradient_step_cnt`, our approach is to set a arbitrary number, such as 15130, which is the number of steps we trained $\pi_0$ on BridgeV2. This is because many third-party models does not have a gradient step count, so we just use a placeholder.
