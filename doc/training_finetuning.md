@@ -1,8 +1,8 @@
 To see how we fine-tune the $\pi_0$ model, please refer to [pi_finetune_bridge.sh](../slurms/train_scripts/pi0_finetune_bridge.sh).
 
-Our scripts are all designed to be run on a SLURM cluster, so here we will break down the scripts so you can reuse them on your cluster or local machine without SLURM.
+Our scripts are all designed to be run on a SLURM cluster. Here, we will break down the scripts so you can reuse them on your cluster or local machine without SLURM.
 
-While not thoroughly tested, we believe that by getting rid of Singularity-related commands as we recommend in the following section, you can directly run the script to perform training and fine-tuning. We use almost identical scripts for training from scratch and fine-tuning, with only differences in respective configuration files.
+Although not thoroughly tested, we believe that by removing Singularity-related commands as recommended in the following section, you can run the script directly on local workstations to perform training and fine-tuning. We use almost identical scripts for training from scratch and fine-tuning, with only differences in respective configuration files.
 
 ## SLURM Script Breakdown
 We will use the aforementioned script as an example to explain the components of an SLURM script.
@@ -25,7 +25,7 @@ We will use the aforementioned script as an example to explain the components of
 ```
 This is the header of the SLURM script. `#!/bin/bash` is the so-called shebang, indicating that the script would be run in a bash shell. 
 
-The `#SBATCH` lines specify various parameters for the job, and should be self-explanatory. For example, you can see that we fine-tune the models on 4 A100/H100 GPUs.
+The `#SBATCH` lines specify various parameters for the job and should be self-explanatory. For example, you can see that we fine-tune the models on 4 A100/H100 GPUs.
 
 **When doing local training**, you can remove all of these except the shebang.
 
@@ -34,7 +34,7 @@ The `#SBATCH` lines specify various parameters for the job, and should be self-e
 # set all the paths to environment variables
 source ./set_path.sh
 ```
-This line set all kinds of environment variables, which are mostly about paths to store models, logs, data, etc. The main README.md file has a section on how to set up the environment variables, so please refer to that.
+This line sets all kinds of environment variables, which are mostly about paths to store models, logs, data, etc. The main README.md file has a section on how to set up the environment variables, so please refer to that.
 
 ### OMP Threads
 ```bash
@@ -89,7 +89,7 @@ singularity exec --nv \
     src/agent/run.py \
     --config_path config/train/pi0_finetune_bridge.yaml" || scontrol requeue $SLURM_JOB_ID
 ```
-This is the main command that runs the training with singularity.
+This is the main command that runs the training with Singularity.
 
 **If you are not using singularity** (e.g., running locally), you can remove the `singularity exec` line and just run the command inside the quotes directly in your terminal. That is, remove everything before `"source ...`. If you do use Singularity, please refer to your cluster documentation to understand Singularity commands.
 
@@ -108,7 +108,7 @@ We use `draccus` to manage configurations.
 
 We use a `yaml` file in [config/train](../config/train) to define the training configuration. The dataclass that defines the configuration can be found in [src/agent/configuration_pipeline.py](../src/agent/configuration_pipeline.py), especially the `TrainPipelineConfig` class.
 
-Things like local batch size, global batch size, gradient accumulation steps, wandb logging are defined there. The naming should be self-explanatory, but if you have any questions, feel free to post an issue on GitHub.
+Things like local batch size, global batch size, gradient accumulation steps, and wandb logging are defined there. The naming should be self-explanatory, but if you have any questions, feel free to post an issue on GitHub.
 
 ### Model Configuration
 We use a `json` file in [config/model](../config/train) to define the model configuration. This is to follow the LeRobot/HuggingFace convention. The dataclass that defines the model configuration can be found in their corresponding [LeRobot Repo](https://huggingface.co/lerobot/pi0/blob/main/config.json). 
