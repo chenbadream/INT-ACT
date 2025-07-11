@@ -1,8 +1,8 @@
 To see how we evaluate a model, please refer to [ev_pi0_bridge_simpler.sh](../slurms/eval_scripts/simpler/ev_pi0_bridge_simpler.sh).
 
-INT-ACT essentially is an extension of SimplerEnv, so theoretically, you can just clone our forked [SimplerEnv](https://github.com/juexZZ/SimplerEnv/tree/fea52fbb9e0da8a2e4e7e5a155b8e5b7f9dd5b87) and [Maniskill2](https://github.com/juexZZ/ManiSkill2_real2sim/tree/eeb04c788feafdf08f4565bcda34370e5a555325) and run the evaluation like you would with SimplerEnv. This README is to provide a more detailed explanation of how we evaluate the models in our paper.
+INT-ACT essentially is an extension of SimplerEnv, so theoretically, you can just clone our forked [SimplerEnv](https://github.com/juexZZ/SimplerEnv/tree/fea52fbb9e0da8a2e4e7e5a155b8e5b7f9dd5b87) and [Maniskill2](https://github.com/juexZZ/ManiSkill2_real2sim/tree/eeb04c788feafdf08f4565bcda34370e5a555325) and run the evaluation like you would with SimplerEnv. This README provides a more detailed explanation of how we evaluate the models presented in our paper.
 
-Similar to training scripts, eval scripts are all designed to be run on a SLURM cluster, so here we will break down the scripts so you can reuse them on your cluster or local machine without SLURM.
+Similar to training scripts, evaluation scripts are designed to be run on an SLURM cluster. Here, we will break down the scripts so you can reuse them on your cluster or local machine without SLURM.
 
 
 ## SLURM Script Breakdown
@@ -42,7 +42,7 @@ Similar to training, **when doing local training**, you can remove all of these 
 CONFIG_NAMES=("pi0_finetune_bridge_ev.yaml")
 SEEDS=(42 7 314)
 ```
-This section defines which config files and random seeds to use. As you might have noticed, in theory, you can put multiple config files and the script will run them sequentially (e.g., `CONFIG_NAMES=("config1.yaml" "config2.yaml")`). However, we only use one config file in this example.
+This section defines which config files and random seeds to use. As you may have noticed, in theory, you can put multiple config files and the script will run them sequentially (e.g., `CONFIG_NAMES=("config1.yaml" "config2.yaml")`). However, we only use one config file in this example.
 
 Random seeds here will affect the random seed used in all RNG-based operations in `torch`, `numpy`, etc that we can think of. This is for reproducibility.
 
@@ -130,9 +130,9 @@ for (( i=0; i<TOTAL; i+=BATCH_SIZE )); do
 
         echo "Launching server on port $PORT for step $STEP"
 ```
-In our experience, on one 80GB A100/H100, we can evaluate 4 pairs of server+client in parallel, so we set `BATCH_SIZE=4`. You can change this number to fit your GPU memory.
+In our experience, on one 80GB A100/H100, we can evaluate 4 pairs of server+client in parallel, so we set `BATCH_SIZE=4`. You can adjust this number to match your GPU's memory.
 
-Then, we iterate over config and random seed combinations, launching 4 pairs of server+client simultaneously, each pair using a checkpoint at a specific gradient step.
+Then, we iterate over configs and random seed combinations, launching 4 pairs of server+client simultaneously, each pair using a checkpoint at a specific gradient step.
 
 ### Launch Server and Client
 ```bash
@@ -195,7 +195,7 @@ Here we launch the server and client pair. We use `SERVER_PIDS+=($!)` and `CLIEN
 
 Later on, we wait for all clients to finish with `wait "${CLIENT_PIDS[@]}"`, and then kill the servers with `kill $pid`. This is because the server is designed to run indefinitely, so we need to kill it after the client finishes.
 
-There is another gimmick here. We use `--eval_cfg.pretrained_model_gradient_step_cnt=\"[${STEP}]\"` to pass the specific gradient step to the server and client. You may have recalled that we extracted a list of steps from the config file earlier. This is actually overwriting that list with a single step, so that the server and client only evaluate the model at that specific step. That list is already extracted, so we can safely overwrite it.
+There is another gimmick here. We use `--eval_cfg.pretrained_model_gradient_step_cnt=\"[${STEP}]\"` to pass the specific gradient step to the server and client. You may recall that we previously extracted a list of steps from the config file. This is actually overwriting that list with a single step, so that the server and client only evaluate the model at that specific step. That list is already extracted, so we can safely overwrite it.
 
 ## Evaluate Trained and Third-Party/Non-LeRobot Models
 ### Trained Models
@@ -208,10 +208,10 @@ You can change `eval_cfg.pretrained_model_gradient_step_cnt`, which is a list of
 ### Third-Party/Non-LeRobot Models
 To evaluate third-party models, such as Magma, Octo, SpatialVLA, etc., or any models you develop without LeRobot, there are some works to do. 
 
-1. **Create LeRobot Compatible Placeholder**: See [Magma Folder](../src/model/magma) to see how we create a placeholder for Magma. You will need to create a `configuration_{your_model}.py` which defines the model's configuration, and a `modeling_{your_model}.py` which defines the model's architecture. Of course, these files don't need to hold anything substantial, because the actualy modeling/configuration is done in a third-party package (potentially of your own), like Magma, Octo, etc.
+1. **Create LeRobot Compatible Placeholder**: See [Magma Folder](../src/model/magma) to see how we create a placeholder for Magma. You will need to create a `configuration_{your_model}.py` which defines the model's configuration, and a `modeling_{your_model}.py` which defines the model's architecture. Of course, these files don't need to hold anything substantial, because the actual modeling/configuration is done in a third-party package (potentially of your own), like Magma, Octo, etc.
 
-2. **Install the Third-Party Model**: You will need to install the third-party model. Please follow [inference server installment section of the main README](README.md#octo-and-magma-install-inference-server-policy-environment)
+2. **Install the Third-Party Model**: You will need to install the third-party model. Please follow [inference server installation section of the main README](README.md#octo-and-magma-install-inference-server-policy-environment)
 
 3. **Modify the entry point**: Please modify the  [entry point script](../src/agent/run.py) accordingly so you can launch your own model's evaluation.
 
-4. **Create a experiment config file**: You will need to create a config file under `config/experiment/simpler/` that defines the evaluation settings for your model. You can use the existing [config files](../config/experiment/simpler/magma_bridge_ev_lang1.yaml) as a reference. For `eval_cfg.pretrained_model_gradient_step_cnt`, our approach is to set a arbitrary number, such as 15130, which is the number of steps we trained $\pi_0$ on BridgeV2. This is because many third-party models does not have a gradient step count, so we just use a placeholder.
+4. **Create an experiment config file**: You will need to create a config file under `config/experiment/simpler/` that defines the evaluation settings for your model. You can use the existing [config files](../config/experiment/simpler/magma_bridge_ev_lang1.yaml) as a reference. For `eval_cfg.pretrained_model_gradient_step_cnt`, our approach is to set an arbitrary number, such as 15130, which is the number of steps we trained $\pi_0$ on BridgeV2. This is because many third-party models do not have a gradient step count, so we just use a placeholder.
