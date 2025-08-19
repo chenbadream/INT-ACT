@@ -51,7 +51,8 @@ def load_preprocessed_data(dataset_path):
                 frames.append({'rgb_gripper': path_head + path_tale2, 'rgb_static': path_head + path_tale1})
             elif 'bridge' in dataset_path:
                 image_path = frame["dir"]
-                frames.append(image_path)
+                full_image_path = os.path.join(dataset_path, image_path)
+                frames.append(full_image_path)
             else:
                 raise NotImplementedError
 
@@ -91,7 +92,7 @@ def preprocess_qwen(sources, tokenizer: transformers.PreTrainedTokenizer, has_im
     unmask_tokens_idx = [198, im_start, im_end]
 
     # Reset Qwen chat templates so that it won't include system message every time we apply
-    chat_template = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
+    chat_template = "{% for message in messages %}{{'' + message['role'] + '\n' + message['content'] + '' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ 'assistant\n' }}{% endif %}"
     tokenizer.chat_template = chat_template
 
     # Apply prompt templates
@@ -271,11 +272,15 @@ class FuturePredictionDataset(Dataset):
         data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
         
         # Process current image
-        current_image_pil = Image.fromarray((current_data['images_static'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255).convert('RGB')
+        current_image_array = (current_data['images_static'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
+        current_image_array = current_image_array.astype(np.uint8)
+        current_image_pil = Image.fromarray(current_image_array).convert('RGB')
         current_image_processed = self.process_image(current_image_pil)
         
         # Process future image (same processing as current image for tokenization)
-        future_image_pil = Image.fromarray((future_data['images_static'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255).convert('RGB')
+        future_image_array = (future_data['images_static'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
+        future_image_array = future_image_array.astype(np.uint8)
+        future_image_pil = Image.fromarray(future_image_array).convert('RGB')
         future_image_processed = self.process_target_image(future_image_pil)
         
         # Add images to data dict - both images will be tokenized as part of the sequence
@@ -284,10 +289,14 @@ class FuturePredictionDataset(Dataset):
         
         # Add gripper images if available (both current and future)
         if 'images_gripper' in current_data:
-            current_gripper_pil = Image.fromarray((current_data['images_gripper'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255).convert('RGB')
+            current_gripper_array = (current_data['images_gripper'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
+            current_gripper_array = current_gripper_array.astype(np.uint8)
+            current_gripper_pil = Image.fromarray(current_gripper_array).convert('RGB')
             current_gripper_processed = self.process_image(current_gripper_pil)
             
-            future_gripper_pil = Image.fromarray((future_data['images_gripper'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255).convert('RGB')
+            future_gripper_array = (future_data['images_gripper'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
+            future_gripper_array = future_gripper_array.astype(np.uint8)
+            future_gripper_pil = Image.fromarray(future_gripper_array).convert('RGB')
             future_gripper_processed = self.process_image(future_gripper_pil)
             
             data_dict["gripper_image"] = [current_gripper_processed, future_gripper_processed]

@@ -43,15 +43,15 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
-    data_path: str = field(default=None, metadata={"help": "Path to the training data, in blip3o's instruction.json format. Supporting multiple json files via /path/to/{a,b,c}.json"})
+    data_path: str = field(default="/vast/bc4227/datasets/bridge_processed")
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     early_mix_text: bool = False
     image_folder: Optional[str] = field(default=None)
     image_aspect_ratio: str = "square"
     dataset_cls: str = field(default="blip3o")
-    image_size: int = field(default=384, metadata={"help": "Image resolution for future prediction dataset"})
-    future_step: int = field(default=10, metadata={"help": "Number of future steps to predict in future prediction dataset"})
+    image_size: int = field(default=384)
+    future_step: int = field(default=10)
 
 
 @dataclass
@@ -162,7 +162,7 @@ def train():
     if tokenizer.unk_token is not None:
         tokenizer.pad_token = tokenizer.unk_token
 
-    if model_args.vision_tower is not None:
+    if model_args.vision_tower is None:
         model.get_model().initialize_vision_modules(model_args=model_args, fsdp=training_args.fsdp)
 
         vision_tower = model.get_vision_tower()
