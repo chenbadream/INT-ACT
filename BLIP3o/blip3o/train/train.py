@@ -27,7 +27,7 @@ class ModelArguments:
     vision_tower: Optional[str] = field(default=None)
     vision_tower_pretrained: Optional[str] = field(default=None)  # default to the last layer
     mm_vision_select_layer: Optional[int] = field(default=-1)  # default to the last layer
-    mm_use_im_start_end: bool = field(default=False)
+    mm_use_im_start_end: bool = field(default=True)
     mm_patch_merge_type: Optional[str] = field(default="flat")
     mm_vision_select_feature: Optional[str] = field(default="patch")
     rope_scaling_factor: Optional[float] = field(default=None)

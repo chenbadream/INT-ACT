@@ -255,16 +255,17 @@ class FuturePredictionDataset(Dataset):
 
         # Create conversation for the model
         instruction = current_data['instruction']
-        conversations = [
-            {
-                "from": "human", 
-                "value": f"<image>\nGiven this current view and the instruction '{instruction}', predict what the scene will look like in {self.future_step} steps."
-            },
-            {
-                "from": "gpt", 
-                "value": "Based on the instruction and current scene, the future view will be: <image>"
-            }
-        ]
+        if getattr(self.data_args, 'mm_use_im_start_end', False):
+            conversations = [
+                {
+                    "from": "human", 
+                    "value": f"<image>\nGiven this current view and the instruction '{instruction}', predict what the scene will look like in {self.future_step} steps."
+                },
+                {
+                    "from": "gpt", 
+                    "value": "<image>"
+                }
+            ]
         
         # Process with Qwen tokenizer
         sources = preprocess_multimodal(copy.deepcopy([conversations]), self.data_args)
@@ -284,7 +285,8 @@ class FuturePredictionDataset(Dataset):
         future_image_processed = self.process_target_image(future_image_pil)
         
         # Add images to data dict - both images will be tokenized as part of the sequence
-        data_dict["image"] = [current_image_processed, future_image_processed]
+        modality = torch.tensor(1)  # 0 is for und task, 1 is for gen task
+        data_dict["image"] = [current_image_processed + (modality, ), future_image_processed + (modality, )]
         data_dict["ids"] = f"future_pred_{i}"
         
         # Add gripper images if available (both current and future)
@@ -299,7 +301,7 @@ class FuturePredictionDataset(Dataset):
             future_gripper_pil = Image.fromarray(future_gripper_array).convert('RGB')
             future_gripper_processed = self.process_image(future_gripper_pil)
             
-            data_dict["gripper_image"] = [current_gripper_processed, future_gripper_processed]
+            data_dict["gripper_image"] = [current_gripper_processed + (modality, ), future_gripper_processed + (modality, )]
         
         return data_dict
 
@@ -339,6 +341,7 @@ class FuturePredictionDataCollator(object):
         if "image" in instances[0]:
             images = [instance["image"] for instance in instances]
             batch["image_sizes"] = [im[1] for im_list in images for im in im_list]
+            batch["modalities"] = [im[2] for im_list in images for im in im_list]
             images = [im[0] for im_list in images for im in im_list]
             batch["images"] = images
             
