@@ -3,11 +3,11 @@
 #SBATCH --output=log/slurm/train/%x.out
 #SBATCH --error=log/slurm/train/%x.err
 #SBATCH --nodes=1                         # Number of nodes
-#SBATCH --gres=gpu:4                         # Number of GPUs per node
-#SBATCH --time=44:00:00                      # Time limit (hh:mm:ss)
+#SBATCH --gres=gpu:1                         # Number of GPUs per node
+#SBATCH --time=48:00:00                      # Time limit (hh:mm:ss)
 #SBATCH --constraint="h100"
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=54
+#SBATCH --cpus-per-task=44
 #SBATCH --mem=440G
 #SBATCH --account=pr_112_tandon_advanced
 
@@ -37,7 +37,7 @@ singularity exec --nv \
     source ./set_path.sh
     conda activate blip3o-next
 
-    torchrun --nproc_per_node=4 --nnodes=\$SLURM_NNODES \
+    torchrun --nproc_per_node=1 --nnodes=\$SLURM_NNODES \
       --rdzv_id=\$SLURM_JOB_ID --rdzv_backend=c10d --rdzv_endpoint=\$HOSTNAME:29501 BLIP3o/blip3o/train/train.py \
       --deepspeed BLIP3o/scripts/zero1.json \
       --num_image_tokens 65536 \
@@ -57,7 +57,7 @@ singularity exec --nv \
       --bf16 True \
       --run_name $RUN_NAME \
       --output_dir $LOCAL_DIR \
-      --num_train_epochs 1 \
+      --num_train_epochs 10 \
       --per_device_train_batch_size 16 \
       --per_device_eval_batch_size 4 \
       --gradient_accumulation_steps 1 \

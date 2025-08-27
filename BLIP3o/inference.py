@@ -12,7 +12,7 @@ import re
 
 @dataclass
 class T2IConfig:
-    model_path: str = "/scratch/bc4227/INT-ACT-1/models/Pretrain"
+    model_path: str = "/scratch/bc4227/INT-ACT-1/models/Pretrain/checkpoint-30000"
     device: str = "cuda:0"
     dtype: torch.dtype = torch.bfloat16
     # generation config
@@ -47,13 +47,11 @@ class TextToImageInference:
         self.visual_tokenizer.encoder.pool_scale = self.config.scale + 1
 
     def process_image(self, image):
-        """Process image using data_args image processor"""
-        if isinstance(image, str):
-            image = Image.open(image).convert('RGB')
-        processor = self.model.get_vision_tower().image_processor
+        processor = self.data_args.image_processor
         image_size = image.size
         image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-        return image, image_size
+        modality = torch.tensor(1)
+        return image, image_size, modality
 
     def generate_image(self, prompt: str, image_path: str = None) -> Image.Image:
 
@@ -70,11 +68,10 @@ class TextToImageInference:
 
         batch_messages = []
 
-        processed_image, image_size = self.process_image(image_path)
+        image_static = Image.open(image_path).convert('RGB')
+        processed_image, image_size, modalities = self.process_image(image_static)
         images = processed_image.unsqueeze(0).to(self.device)
         image_sizes = [image_size]
-        # 1 is for gen task (same as in dataset)
-        modalities = [torch.tensor(1, device=self.device)] 
 
 
         messages = [

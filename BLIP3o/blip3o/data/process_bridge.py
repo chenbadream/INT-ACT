@@ -1,17 +1,13 @@
 import os
-import torch.multiprocessing
 import tensorflow_datasets as tfds
-import numpy as np
-from matplotlib import pyplot as plt
-import pandas as pd
 import tqdm
 import json
 import cv2
 
-def preprocess_dataset(origin_dataset_path, episode_num=10):
+def preprocess_dataset(origin_dataset_path, episode_num=2):
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
     
-    processed_root = "/vast/bc4227/datasets/bridge_processed"
+    processed_root = "/vast/bc4227/datasets/bridge_overfit"
     os.makedirs(processed_root, exist_ok=True)
     
     builder = tfds.builder_from_directory(origin_dataset_path)
@@ -22,7 +18,7 @@ def preprocess_dataset(origin_dataset_path, episode_num=10):
     
     processed_episode_count = 0
 
-    for i, episode in enumerate(tqdm.tqdm(iter(episode_ds))):
+    for i, episode in enumerate(tqdm.tqdm(iter(episode_ds.take(episode_num)))):
         language_instruction = ""
         for step in episode['steps'].as_numpy_iterator():
             if 'language_instruction' in step and step['language_instruction']:

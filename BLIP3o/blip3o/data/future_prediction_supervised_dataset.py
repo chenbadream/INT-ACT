@@ -1,18 +1,23 @@
 import copy
+import glob
+import io
 import json
+import math
 import os
 import random
+import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 import torch
 import transformers
-from PIL import Image
+import yaml
+from PIL import Image, ImageFile
 from torch.utils.data import Dataset
-from torchvision import transforms
 from torchvision.transforms import v2
-
+from torchvision import transforms
+from datasets import load_dataset, concatenate_datasets
 from blip3o.constants import (
     DEFAULT_IM_END_TOKEN,
     DEFAULT_IM_START_TOKEN,
@@ -23,14 +28,7 @@ from blip3o.constants import (
 from blip3o.utils import rank0_print
 
 
-def image_transform(image, resolution=384, normalize=True):
-    """Transform for current timestep images"""
-    image = transforms.Resize(resolution, interpolation=transforms.InterpolationMode.BICUBIC)(image)
-    image = transforms.CenterCrop((resolution, resolution))(image)
-    image = transforms.ToTensor()(image)
-    if normalize:
-        image = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True)(image)
-    return image
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def load_preprocessed_data(dataset_path):
     """Load preprocessed data from the dataset path"""
@@ -42,27 +40,16 @@ def load_preprocessed_data(dataset_path):
     for epi in dataset:
         frames = []
         for frame in epi["frames"]:
-            if 'calvin' in dataset_path:
-                frames.append(frame["dir"])
-            elif 'real_panda' in dataset_path:
-                path_head = "./mnt/real_panda/"  # /mnt/real_panda/
-                path_tale1 = "/".join(frame["wrist_1"].split("/")[3:])
-                path_tale2 = "/".join(frame["wrist_2"].split("/")[3:])
-                frames.append({'rgb_gripper': path_head + path_tale2, 'rgb_static': path_head + path_tale1})
-            elif 'bridge' in dataset_path:
+            if 'bridge' in dataset_path:
                 image_path = frame["dir"]
                 full_image_path = os.path.join(dataset_path, image_path)
                 frames.append(full_image_path)
-            else:
-                raise NotImplementedError
 
         instructions.append(epi["instruction"])
         episodes.append(frames)
     return episodes, instructions
 
-
 def preprocess_multimodal(sources: Sequence[str], data_args) -> Dict:
-    """Preprocess multimodal sources"""
     is_multimodal = data_args.is_multimodal
     if not is_multimodal:
         return sources
@@ -79,20 +66,18 @@ def preprocess_multimodal(sources: Sequence[str], data_args) -> Dict:
 
 
 def preprocess_qwen(sources, tokenizer: transformers.PreTrainedTokenizer, has_image: bool = False, max_len=2048, system_message: str = "You are a helpful assistant.") -> Dict:
-    """Preprocess using Qwen tokenizer"""
     roles = {"human": "user", "gpt": "assistant"}
 
-    # When there is actually an image, we add the image tokens as a special token
     if 'image_token_index' not in globals():
         tokenizer.add_tokens(["<image>"], special_tokens=True)
         global image_token_index
         image_token_index = tokenizer.convert_tokens_to_ids("<image>")
 
     im_start, im_end = tokenizer.additional_special_tokens_ids[:2]
-    unmask_tokens_idx = [198, im_start, im_end]
+    unmask_tokens_idx =  [198, im_start, im_end]
 
     # Reset Qwen chat templates so that it won't include system message every time we apply
-    chat_template = "{% for message in messages %}{{'' + message['role'] + '\n' + message['content'] + '' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ 'assistant\n' }}{% endif %}"
+    chat_template = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
     tokenizer.chat_template = chat_template
 
     # Apply prompt templates
@@ -103,8 +88,7 @@ def preprocess_qwen(sources, tokenizer: transformers.PreTrainedTokenizer, has_im
 
         input_id, target = [], []
 
-        # Build system message for each sentence
-        input_id += tokenizer.apply_chat_template([{"role": "system", "content": system_message}])
+        input_id += tokenizer.apply_chat_template([{"role" : "system", "content" : system_message}])
         target += input_id
 
         for conv in source:
@@ -116,9 +100,9 @@ def preprocess_qwen(sources, tokenizer: transformers.PreTrainedTokenizer, has_im
                 role = conv["from"]
                 content = conv["value"]
 
-            role = roles.get(role, role)
+            role =  roles.get(role, role)
             
-            conv = [{"role": role, "content": content}]
+            conv = [{"role" : role, "content" : content}]
             encode_id = tokenizer.apply_chat_template(conv)
             input_id += encode_id
             if role in ["user", "system"]:
@@ -142,7 +126,6 @@ def preprocess_qwen(sources, tokenizer: transformers.PreTrainedTokenizer, has_im
         labels=targets,  
     )
 
-
 class FuturePredictionDataset(Dataset):
     """Dataset for future view prediction with supervised fine-tuning structure."""
 
@@ -151,16 +134,14 @@ class FuturePredictionDataset(Dataset):
         tokenizer: transformers.PreTrainedTokenizer,
         data_path: str,
         data_args,
-        image_size=384,
         future_step=10
     ):
         super(FuturePredictionDataset, self).__init__()
         
         self.data_args = data_args
         self.tokenizer = tokenizer
-        self.image_size = image_size
         self.future_step = future_step
-        self.transform = image_transform
+        self.modality = torch.tensor(1)
         
         # Load preprocessed data
         self.episodes, self.instructions = load_preprocessed_data(data_path)
@@ -171,13 +152,11 @@ class FuturePredictionDataset(Dataset):
         total_frames = sum(len(episode) for episode in self.episodes)
         
         rank0_print(f"Loaded future prediction dataset with {total_frames} samples")
-        print("Formatting Future prediction (PRE) data")
 
     def __len__(self):
         return sum(len(episode) for episode in self.episodes)
 
     def get_episode_idx(self, index):
-        """Get episode index and frame index within episode"""
         for i, x in self.length_episodes.items():
             if index < x:
                 episode_idx = i
@@ -186,13 +165,12 @@ class FuturePredictionDataset(Dataset):
         raise ValueError(f"Index {index} out of range")
 
     def get_future_index(self, index, future_step=10):
-        """Get future frame index"""
         for i, x in self.length_episodes.items():
             if index < x:
                 if index + future_step < x:
                     return index + future_step  # future index is in the same episode
                 else:
-                    return self.length_episodes[i] - 1  # future index is at end of episode
+                    return self.length_episodes[i] - 1  # future index is in the next episode, use the last frame
         raise ValueError(f"Index {index} out of range")
 
     def get_raw_items(self, index):
@@ -200,20 +178,9 @@ class FuturePredictionDataset(Dataset):
         episode_idx, idx = self.get_episode_idx(index)
         episode = self.episodes[episode_idx]
         
-        if 'calvin' in self.data_args.data_path:
-            image_static = np.load(episode[idx], allow_pickle=True)['rgb_static']
-            image_gripper = np.load(episode[idx], allow_pickle=True)['rgb_gripper']
-            image_static = self.transform(Image.fromarray(np.uint8(image_static)), resolution=self.image_size)
-            image_gripper = self.transform(Image.fromarray(np.uint8(image_gripper)), resolution=self.image_size)
-        elif 'real_panda' in self.data_args.data_path:
-            image_static = Image.open(episode[idx]['rgb_static']).convert('RGB')
-            image_gripper = Image.open(episode[idx]['rgb_gripper']).convert('RGB')
-            image_static = self.transform(image_static, resolution=self.image_size)
-            image_gripper = self.transform(image_gripper, resolution=self.image_size)
-        elif 'bridge' in self.data_args.data_path:
+        if 'bridge' in self.data_args.data_path:
             image_path = episode[idx]
             image_static = Image.open(image_path).convert('RGB')
-            image_static = self.transform(image_static, resolution=self.image_size)
         else:
             raise NotImplementedError
             
@@ -224,28 +191,15 @@ class FuturePredictionDataset(Dataset):
                 'instruction': instruction,
                 'images_static': image_static,
             }
-        else:
-            return {
-                'instruction': instruction,
-                'images_static': image_static,
-                'images_gripper': image_gripper,
-            }
 
     def process_image(self, image):
-        """Process image using data_args image processor"""
         processor = self.data_args.image_processor
         image_size = image.size
         image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-        return image, image_size
-
-    def process_target_image(self, image):
-        """Process target (future) image same as current image for tokenization"""
-        processor = self.data_args.image_processor
-        image_size = image.size
-        image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-        return image, image_size
+        return image, image_size, self.modality
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        i = 0
         # Get current timestep data
         current_data = self.get_raw_items(i)
         
@@ -255,17 +209,16 @@ class FuturePredictionDataset(Dataset):
 
         # Create conversation for the model
         instruction = current_data['instruction']
-        if getattr(self.data_args, 'mm_use_im_start_end', False):
-            conversations = [
-                {
-                    "from": "human", 
-                    "value": f"<image>\nGiven this current view and the instruction '{instruction}', predict what the scene will look like in {self.future_step} steps."
-                },
-                {
-                    "from": "gpt", 
-                    "value": "<image>"
-                }
-            ]
+        conversations = [
+            {
+                "from": "human", 
+                "value": f"<image>\nGiven this current view and the instruction '{instruction}', predict what the scene will look like in {self.future_step} steps."
+            },
+            {
+                "from": "gpt", 
+                "value": "<image>"
+            }
+        ]
         
         # Process with Qwen tokenizer
         sources = preprocess_multimodal(copy.deepcopy([conversations]), self.data_args)
@@ -273,35 +226,14 @@ class FuturePredictionDataset(Dataset):
         data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
         
         # Process current image
-        current_image_array = (current_data['images_static'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
-        current_image_array = current_image_array.astype(np.uint8)
-        current_image_pil = Image.fromarray(current_image_array).convert('RGB')
-        current_image_processed = self.process_image(current_image_pil)
+        current_image_processed = self.process_image(current_data['images_static'])
         
         # Process future image (same processing as current image for tokenization)
-        future_image_array = (future_data['images_static'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
-        future_image_array = future_image_array.astype(np.uint8)
-        future_image_pil = Image.fromarray(future_image_array).convert('RGB')
-        future_image_processed = self.process_target_image(future_image_pil)
+        future_image_processed = self.process_image(future_data['images_static'])
         
         # Add images to data dict - both images will be tokenized as part of the sequence
-        modality = torch.tensor(1)  # 0 is for und task, 1 is for gen task
-        data_dict["image"] = [current_image_processed + (modality, ), future_image_processed + (modality, )]
+        data_dict["image"] = [current_image_processed, future_image_processed]
         data_dict["ids"] = f"future_pred_{i}"
-        
-        # Add gripper images if available (both current and future)
-        if 'images_gripper' in current_data:
-            current_gripper_array = (current_data['images_gripper'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
-            current_gripper_array = current_gripper_array.astype(np.uint8)
-            current_gripper_pil = Image.fromarray(current_gripper_array).convert('RGB')
-            current_gripper_processed = self.process_image(current_gripper_pil)
-            
-            future_gripper_array = (future_data['images_gripper'].permute(1, 2, 0).numpy() * 0.5 + 0.5) * 255
-            future_gripper_array = future_gripper_array.astype(np.uint8)
-            future_gripper_pil = Image.fromarray(future_gripper_array).convert('RGB')
-            future_gripper_processed = self.process_image(future_gripper_pil)
-            
-            data_dict["gripper_image"] = [current_gripper_processed + (modality, ), future_gripper_processed + (modality, )]
         
         return data_dict
 
@@ -344,12 +276,6 @@ class FuturePredictionDataCollator(object):
             batch["modalities"] = [im[2] for im_list in images for im in im_list]
             images = [im[0] for im_list in images for im in im_list]
             batch["images"] = images
-            
-        # Handle gripper images if available (both current and future)
-        if "gripper_image" in instances[0]:
-            gripper_images = [instance["gripper_image"] for instance in instances]
-            gripper_images = [im[0] for im_list in gripper_images for im in im_list]
-            batch["gripper_images"] = gripper_images
 
         return batch
 
@@ -369,7 +295,6 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer, dat
         tokenizer=tokenizer, 
         data_path=data_args.data_path, 
         data_args=data_args,
-        image_size=getattr(data_args, 'image_size', 384),
         future_step=getattr(data_args, 'future_step', 10)
     )
     data_collator = FuturePredictionDataCollator(tokenizer=tokenizer)

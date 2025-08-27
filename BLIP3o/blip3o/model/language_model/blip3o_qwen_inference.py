@@ -159,6 +159,7 @@ class blip3oQwenForInferenceLM(Qwen3ForCausalLM, blip3oMetaForCausalLM):
         inputs, attention_mask = self.prepare_inputs_labels_for_multimodal_inference(
                 inputs, attention_mask, images, modalities, image_sizes=image_sizes
             )
+        print(f"Processed input_ids shape: {inputs.shape}")
 
         gen_ids = super(blip3oQwenForInferenceLM, self).generate(
             inputs,
@@ -188,6 +189,8 @@ class blip3oQwenForInferenceLM(Qwen3ForCausalLM, blip3oMetaForCausalLM):
                 batch_image_tokens = gen_ids[b, start:]
         else:
             batch_image_tokens = gen_ids[b, start:]
+
+        print(f"Generated image tokens: {batch_image_tokens.shape}")
 
         return batch_image_tokens
         
