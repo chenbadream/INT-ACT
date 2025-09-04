@@ -1,0 +1,3 @@
+name: "mllm_baseline_bridge"
+model_cfg: !include mllm_baseline_bridge.json
+freeze_lm_head: true

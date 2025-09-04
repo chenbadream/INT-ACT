@@ -4,10 +4,10 @@ import tqdm
 import json
 import cv2
 
-def preprocess_dataset(origin_dataset_path, episode_num=2):
+def preprocess_dataset(origin_dataset_path):
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
     
-    processed_root = "/vast/bc4227/datasets/bridge_overfit"
+    processed_root = "/vast/bc4227/datasets/bridge_processed_with_state"
     os.makedirs(processed_root, exist_ok=True)
     
     builder = tfds.builder_from_directory(origin_dataset_path)
@@ -18,22 +18,12 @@ def preprocess_dataset(origin_dataset_path, episode_num=2):
     
     processed_episode_count = 0
 
-    for i, episode in enumerate(tqdm.tqdm(iter(episode_ds.take(episode_num)))):
-        language_instruction = ""
-        for step in episode['steps'].as_numpy_iterator():
-            if 'language_instruction' in step and step['language_instruction']:
-                language_instruction = step['language_instruction'].decode("utf-8")
-                break 
-        
-        if not language_instruction:
-            print(f"Skipping episode {i} due to missing language instruction.")
-            continue
+    for i, episode in enumerate(tqdm.tqdm(iter(episode_ds))):
         
         episode_path = os.path.join(processed_root, f"episode{processed_episode_count:07}")
         os.makedirs(episode_path, exist_ok=True)
         
         episode_info = {
-            'instruction': language_instruction,
             'frames': []
         }
 
@@ -45,7 +35,8 @@ def preprocess_dataset(origin_dataset_path, episode_num=2):
             
             frame_info = {
                 'dir': f"episode{processed_episode_count:07}/frame{j:03}.jpg",
-                'action': step['action'].tolist()
+                'action': step['action'].tolist(),
+                'state': step["observation"]["state"].tolist()
             }
             episode_info['frames'].append(frame_info)
         

@@ -12,7 +12,7 @@ import re
 
 @dataclass
 class T2IConfig:
-    model_path: str = "/scratch/bc4227/INT-ACT-1/models/Pretrain/checkpoint-30000"
+    model_path: str = "/scratch/bc4227/INT-ACT-1/models/Overfit/checkpoint-6000"
     device: str = "cuda:0"
     dtype: torch.dtype = torch.bfloat16
     # generation config
@@ -47,7 +47,7 @@ class TextToImageInference:
         self.visual_tokenizer.encoder.pool_scale = self.config.scale + 1
 
     def process_image(self, image):
-        processor = self.data_args.image_processor
+        processor = self.model.get_vision_tower().image_processor
         image_size = image.size
         image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         modality = torch.tensor(1)

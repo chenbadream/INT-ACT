@@ -82,7 +82,7 @@ class DataConfig:
 
     # the number of episodes used in the training set
     # this will affect the number of gradient steps
-    train_episode_count: int = 1550000
+    train_episode_count: int = 3410000
 
 
 @dataclass
@@ -176,8 +176,8 @@ class TrainPipelineConfig:
     use_amp: bool = True
     use_bf16: bool = True
 
-    global_batch_size: int = 1024
-    per_device_batch_size: int = 32
+    global_batch_size: int = 256
+    per_device_batch_size: int = 8
     n_epochs: int = 15
     max_grad_norm: float = 1.0
 
