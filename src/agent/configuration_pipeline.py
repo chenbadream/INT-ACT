@@ -176,8 +176,8 @@ class TrainPipelineConfig:
     use_amp: bool = True
     use_bf16: bool = True
 
-    global_batch_size: int = 256
-    per_device_batch_size: int = 8
+    global_batch_size: int = 1024
+    per_device_batch_size: int = 32
     n_epochs: int = 15
     max_grad_norm: float = 1.0
 

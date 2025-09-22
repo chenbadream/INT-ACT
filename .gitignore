@@ -177,3 +177,5 @@ datasets/
 models/
 future_predictions/
 outputs/
+
+dinov3.pth
